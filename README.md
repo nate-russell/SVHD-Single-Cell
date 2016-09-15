@@ -7,7 +7,7 @@ Single-cell analysis can uncover the mysteries in the state of individual cells 
 
 
 # Visualization Tool
-[![IMAGE ALT TEXT](http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)]
+[![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](http://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
 [![IMAGE ALT TEXT](https://vimeo.com/176946160)]
 
 
