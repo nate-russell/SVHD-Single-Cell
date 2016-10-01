@@ -23,8 +23,8 @@ Single-cell analysis can uncover the mysteries in the state of individual cells 
 ### License
 TODO
 
-### Install 
-TODO
+### [Install](../Install/)
++ bash script to make it easy
 
 #### Authors
 + Juho Kim, juhokim2@illinois.edu 
