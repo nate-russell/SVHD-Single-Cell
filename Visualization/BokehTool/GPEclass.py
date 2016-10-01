@@ -37,7 +37,7 @@ from sklearn.datasets import make_blobs
 
 from collections import defaultdict
 
-def_quant_cmap = cm.get_cmap('viridis')
+def_quant_cmap = cm.get_cmap('magma')
 def_qual_cmap = cm.get_cmap('Paired')
 
 
@@ -133,7 +133,7 @@ def get_color_map(c):
 
 class GPE:
 
-    def __init__(self,offline=False,test_n_plots=6,test_n_samples=1000,max_row_width=6):
+    def __init__(self,offline=False,test_n_plots=2,test_n_samples=1000,max_row_width=2):
         """
         Initialize Graph Projection Explorer
         """
@@ -145,6 +145,7 @@ class GPE:
         self.test_n_plots = test_n_plots
         self.test_n_samples = test_n_samples
         self.max_row_width = max_row_width
+        self.testmode = False
 
         if offline:
             # Operate in non command line argument mode
@@ -152,6 +153,7 @@ class GPE:
             self.verbose = True
         else:
             parser = argparse.ArgumentParser()
+            parser.add_argument("--dir", help="directory housing data")
             parser.add_argument("--mode", help="Options: Test, Presentation, Default")
             parser.add_argument("--verbose", help="If True, Prints messages to console where server is running")
             self.args = parser.parse_args()
@@ -173,6 +175,9 @@ class GPE:
         # Build Test Data if it exists
         if self.testmode:
             self.data_dir = self.gen_test_data()
+        else:
+            self.data_dir = self.args.dir
+
 
         # Initialize
         self.init_data()
@@ -196,7 +201,10 @@ class GPE:
         vecdir = os.path.join(self.data_dir,'vectors')
         graphdir = os.path.join(self.data_dir,'graphs')
         assert  os.path.isdir(vecdir)
-        assert  os.path.isdir(graphdir)
+        try:
+            assert os.path.isdir(graphdir)
+        except AssertionError:
+            pass
 
         vec_files = [os.path.join(vecdir,file) for file in os.listdir(vecdir) if file.endswith(".csv")]
         vec_files.sort()
@@ -212,6 +220,8 @@ class GPE:
         n_plot = 1
         self.n_plots = 0
         for i,f in enumerate(vec_files):
+
+            if self.verbose: print("Reading File: %s"%f)
 
             file_prefix = f.split('/')[-1].split('.')[0] + "_"
 
@@ -541,7 +551,9 @@ class GPE:
 
 
         # Make Each Plot
+        if self.verbose: print("Plots to make: "+str(self.maps_dict.keys()))
         for f in self.maps_dict.keys():
+            if self.verbose: print("Making Plot: %s"%f)
             xs = self.maps_dict[f][0]
             ys = self.maps_dict[f][1]
             self.make_plot(f, xs, ys)
@@ -557,6 +569,8 @@ class GPE:
                 else: sublist.append(None)
 
             nested_list.append(sublist)
+
+        if self.verbose: print("Grid of plots: "+str(nested_list))
         return gridplot(nested_list)
 
     def make_all_controls(self):

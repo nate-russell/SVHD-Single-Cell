@@ -13,7 +13,7 @@ def launch_localhost(dir,mode='normal',verbose=True):
     """
     if not isinstance(mode,str): raise ValueError("param \"mode\" must be string")
     if not isinstance(dir, str): raise ValueError("param \"dir\" must be string and is a valid accesible path")
-    if not isinstance(mode, bool): raise ValueError("param \"mode\" must be boolean")
+    if not isinstance(verbose, bool): raise ValueError("param \"mode\" must be boolean")
 
 
     # Opens the server inside a browser if possible
@@ -22,10 +22,10 @@ def launch_localhost(dir,mode='normal',verbose=True):
     except:
         pass
 
-    call_list = ["bokeh", "serve",os.path.join(os.path.dirname(__file__),"BokehTool"),
-                     "--args",
-                     "--mode",mode,
-                     "--verbose",str(verbose)]
+    call_list = ["bokeh", "serve",os.path.join(os.path.dirname(__file__),"BokehTool"),"--args",
+                 "--dir",dir,
+                 "--mode",mode,
+                 "--verbose",str(verbose)]
     print(call_list)
     subprocess.call(call_list)
 
