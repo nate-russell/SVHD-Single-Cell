@@ -8,7 +8,7 @@ If you see the largeVis_single_cell folder, there is src folder. It contains C++
 
 ## Usage
 
-After building the C++ code or installing the largeVis R package, you can run your algorithm. In R, you can use it by making a simple R script. The file single_cell_visualization.R is an example script for visualization of high-dimensional single_cell data. You first need to designate your input and output csv file path. Then, you have to tune the parameters of largeVis according to your data set.
+After building the C++ code or installing the largeVis R package, you can run your algorithm. In R, you can use it by making a simple R script. The file single_cell_visualization.R is an example script for visualization of high-dimensional single-cell data. You first need to designate your input and output csv file path. Then, you have to tune the parameters of largeVis according to your data set.
 
 ## MATLAB code
 
