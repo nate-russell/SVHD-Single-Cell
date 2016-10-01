@@ -1,6 +1,6 @@
 ## Data preparation
 
-We use cytometry single-cell data. The data file is a fcs format, so in order read the files, we use Laszlo Balkay's FCS data reader.
+We use cytometry single-cell data. The data files are fcs format, so in order read the files, we use Laszlo Balkay's FCS data reader.
 
 ## Installation
 
