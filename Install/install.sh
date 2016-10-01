@@ -12,7 +12,7 @@ apt-get -y install libcurl4-openssl-dev
 
 # install devtools & largevis
 R -e 'install.packages(c("devtools"), repos="http://cran.us.r-project.org", dependencies=TRUE)'
-R -e "devtools::install_local('/largeVis-line')"
+R -e "devtools::install_local('largeVis-line')"
 
 # install python requirements
 pip install -r requirements.txt
