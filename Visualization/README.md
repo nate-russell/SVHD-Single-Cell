@@ -1,4 +1,4 @@
-[back to main page](../)
+[back to main page](./)
 
 # Visualization Tool
 
