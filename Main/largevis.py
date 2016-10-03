@@ -58,8 +58,8 @@ class LargeVis:
 
         print('\nCurrent Working Director:',os.curdir)
 
-        # Call R command line script via subprocess
-        subprocess.call(["Rscript","largevis_cli.R",
+
+        command = ["Rscript","largevis_cli.R",
                          "-f", in_path,
                          "-o", out_path,
                          "-m", str(self.negative_samples),
@@ -69,7 +69,12 @@ class LargeVis:
                          "-g", str(self.gamma),
                          "-a", str(self.alpha),
                          "-r", str(self.rho),
-                         ])
+                         ]
+
+        print(' '.join(command))
+
+        # Call R command line script via subprocess
+        subprocess.call()
 
         # Read largevis out file back into python memory
         df = pd.read_csv(out_path)
