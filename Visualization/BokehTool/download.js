@@ -5,10 +5,6 @@ var data = source.data;
 var data_keys = Object.keys(data).sort()
 var filetext = data_keys.join() + '\n';
 for (i=0; i < data[data_keys[0]].length; i++) {
-    var currRow = [data['Meta'][i].toString(),
-                   data['Meta'][i].toString(),
-                   data['Meta'][i].toString().concat('\n')];
-    var joined = currRow.join();
 
     var joined = ''
     for (j=0; j < data_keys.length; j++) {

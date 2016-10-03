@@ -3,7 +3,7 @@ import webbrowser
 import os
 
 
-def launch_localhost(dir,mode='normal',verbose=True):
+def launch_localhost(dir,mode='normal',verbose=True,downsample=None):
     """
     Initializes a localhost Bokeh server
     :param dir: Parent Directory , Required subdirs: Vectors, Optional subdirs: Graphs
@@ -25,9 +25,12 @@ def launch_localhost(dir,mode='normal',verbose=True):
     call_list = ["bokeh", "serve",os.path.join(os.path.dirname(__file__),"BokehTool"),"--args",
                  "--dir",dir,
                  "--mode",mode,
-                 "--verbose",str(verbose)]
+                 "--verbose",str(verbose),
+                 "--downsample",str(downsample)]
     print(call_list)
     subprocess.call(call_list)
 
-
+if __name__ == '__main__':
+    print("Test Run")
+    launch_localhost(dir='test',mode='test')
 

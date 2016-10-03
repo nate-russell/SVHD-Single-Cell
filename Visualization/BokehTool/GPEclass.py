@@ -4,10 +4,11 @@ ntrusse2@illinois.edu
 '''
 from __future__ import division
 import argparse
+import scipy
 accelerator = True  # If True, turns on WebGL
-import bokeh
 from pprint import pprint
-from bokeh.io import gridplot
+from bokeh.client import session, push_session
+from bokeh.io import gridplot, curdoc, push, set_curdoc
 from bokeh.models import BoxSelectTool, LassoSelectTool, HoverTool, WheelZoomTool, \
     PanTool, SaveTool, RedoTool, UndoTool, PolySelectTool, TapTool
 from bokeh.models.layouts import WidgetBox
@@ -24,6 +25,7 @@ import os
 from collections import OrderedDict
 import tempfile
 import warnings
+from functools import partial
 
 mpl.rcParams['legend.markerscale'] = 2
 from matplotlib import gridspec
@@ -37,7 +39,7 @@ from sklearn.datasets import make_blobs
 
 from collections import defaultdict
 
-def_quant_cmap = cm.get_cmap('magma')
+def_quant_cmap = cm.get_cmap('viridis')
 def_qual_cmap = cm.get_cmap('Paired')
 
 
@@ -133,7 +135,7 @@ def get_color_map(c):
 
 class GPE:
 
-    def __init__(self,offline=False,test_n_plots=2,test_n_samples=1000,max_row_width=2):
+    def __init__(self,offline=False,test_n_plots=6,test_n_samples=1000,max_row_width=4):
         """
         Initialize Graph Projection Explorer
         """
@@ -146,6 +148,8 @@ class GPE:
         self.test_n_samples = test_n_samples
         self.max_row_width = max_row_width
         self.testmode = False
+        self.n_newplots = 0
+
 
         if offline:
             # Operate in non command line argument mode
@@ -155,8 +159,17 @@ class GPE:
             parser = argparse.ArgumentParser()
             parser.add_argument("--dir", help="directory housing data")
             parser.add_argument("--mode", help="Options: Test, Presentation, Default")
+            parser.add_argument("--downsample", help="If provided, randomly samples the data the provided number of times")
             parser.add_argument("--verbose", help="If True, Prints messages to console where server is running")
             self.args = parser.parse_args()
+
+
+            try:
+                self.args.downsample = int(self.args.downsample)
+            except:
+                TypeError()
+
+
 
             if self.args.verbose:
                 self.verbose = True
@@ -235,7 +248,13 @@ class GPE:
                 self.n,p = df.shape
             else:
                 n,p = df.shape
-                assert n == self.n
+                #assert n == self.n
+
+            if isinstance(self.args.downsample, int):
+                if self.verbose: print("Downsampling: %d"%self.args.downsample)
+                df = df.sample(n=int(self.args.downsample),replace=False,random_state=1,axis=0)
+                print(df.shape)
+                self.n, p = df.shape
 
             # Test if D1 and D2 columns are found
             has_d1 = 0
@@ -344,7 +363,7 @@ class GPE:
 
 
             cols = X[:, (i * 2):((i * 2) + 2)]
-            cols[np.random.choice(range(self.test_n_samples),1),:] = [np.NaN,np.NaN]
+            #cols[np.random.choice(range(self.test_n_samples),1),:] = [np.null,np.null]
 
             df = pd.DataFrame(data=cols, columns=('D1','D2'))
             df.to_csv(os.path.join(tmpdir_p,'P%d.csv'%i))
@@ -379,7 +398,7 @@ class GPE:
         # Initialize Controls
         self.color_selection = Select(title="Color By", options=self.data_dict.keys(), value=self.data_dict.keys()[0])
         self.selection_label = TextInput(value="MyGroup#1", title="Selection Label:")
-        self.save_selection = Button(label="Save Selection", )
+
         self.add_selection_label = Button(label="Add Selection Label")
         self.write_mod_file = Button(label="Download", button_type="primary")
         self.write_mod_file.callback = CustomJS(args=dict(source=self.source),
@@ -389,27 +408,22 @@ class GPE:
         self.tooltip_select = MultiSelect(title='Tooltip',value = [self.data_dict.keys()[0]],
                                           options=[(key,key.upper()) for key in self.data_dict.keys()])
 
-
-
-        # Specify event action handler
-        self.save_selection.on_click(self.save_selection_handler)
-        self.add_selection_label.on_click(self.add_selection_handler)
-
-
         # Declare Tooltip Contents
         self.tooltip_list = [(col, "@" + col) for col in self.tooltip_select.value]
 
         self.init_control_time = time() - t0
         return self.init_control_time
 
-    def save_selection_handler(self):
-        print('TODO')
+    def add_selection(self):
+        """
+        Add new column to source containing copy of selection
+        :return:
+        """
+        self.source.add(self.source.data['__selected__'],name=self.selection_label.value)
 
-    def add_selection_handler(self):
-        print('TODO')
 
-    def write_selection_handler(self):
-        print('TODO')
+
+
 
     def make_plot(self,title, x, y):
         """
@@ -419,6 +433,10 @@ class GPE:
         :param y:
         :return:
         """
+
+        print(title,x,y)
+
+
         t0 = time()
 
         pt = PanTool()
@@ -450,9 +468,11 @@ class GPE:
         p.yaxis.axis_label = self.initial_plot_2_data_mapper[y]
         c = p.circle(x=x, y=y, size=5, color="__COLOR__", alpha=.75, source=self.source,
                      hover_color='white', hover_alpha=1, hover_line_color='grey')
+        c.data_source.on_change('selected', self.update)
 
 
         # Edge generator
+        '''
         self.graph_set = [{i: [[1,0.15],[2,0.5],[3,0.99]] for i in range(self.n)}]
 
         self.edge_colors = qual_2_color(['g'+str(i) for i,_ in enumerate(self.graph_set)])
@@ -498,9 +518,11 @@ class GPE:
                                       'segment': self.edge_segments[i].data_source},
                                 code=code)
             p.add_tools(HoverTool(tooltips=None, callback=callback, renderers=[c]))
+        '''
 
         p.select(BoxSelectTool).select_every_mousemove = False
         p.select(LassoSelectTool).select_every_mousemove = False
+
 
 
         # Plot Controls
@@ -508,6 +530,9 @@ class GPE:
         ydim_select = Select(title="Y Dim", options=self.data_dict.keys(), value=self.initial_plot_2_data_mapper[y],width=400)
         xdim_select.on_change('value', self.plot_update)
         ydim_select.on_change('value', self.plot_update)
+        remove = Button(label="Remove", button_type="danger",width=400)
+        remove.on_click(partial(self.remove_plot,title,x,y))
+
         self.plot_control_dict[title] = {'x':xdim_select,
                                          'y':ydim_select,
                                          'xprev':xdim_select.value,
@@ -518,12 +543,8 @@ class GPE:
         self.plot_control_dict[title]['figure'].add_tools(self.plot_control_dict[title]['tooltip'])
 
 
-
-
-
-
         # Form Tab
-        plot_options = WidgetBox(xdim_select,ydim_select)
+        plot_options = WidgetBox(xdim_select,ydim_select,remove)
         tab1 = Panel(child=self.plot_control_dict[title]['figure'], title=title,width=400,height=400)
         tab2 = Panel(child=plot_options, title="options",width=400,height=400)
         tabs = Tabs(tabs=[tab1, tab2],width=400,height=400)
@@ -536,56 +557,165 @@ class GPE:
 
         return tabs, c
 
+    def change_color(self,attrname, old, new):
+        """
+        Change Color
+        :return:
+        """
+        if self.verbose: print("---self.change_color---")
+        self.source.patch({"__COLOR__": self.color_map_dict[self.color_selection.value]})
+        if self.verbose: print('New Color: '+self.color_selection.value)
+
+    def refresh_plots(self):
+        """
+        Refresh plots
+        :return:
+        """
+        if self.verbose: print('---self.refresh_plots---')
+        print(self.layout)
+        print(self.layout.children)
+        self.layout.children[0] = self.make_all_plots()
+        print(self.layout)
+        print(self.layout.children)
+
+        #controls = self.make_all_controls()
+        #dt = self.make_data_table()
+        #self.layout.children[1] = row(controls, dt)
+
+    def add_plot(self):
+        """
+        Add new plot to the
+        :return:
+        """
+        if self.verbose: print('---self.add_plot---')
+        self.n_newplots += 1
+
+
+        d1 = self.true_cols[np.random.randint(len(self.true_cols))]
+        d2 = self.true_cols[np.random.randint(len(self.true_cols))]
+
+        self.source.add(self.source.data[d1],name='NewPlot%d_x'%self.n_newplots)
+        self.source.add(self.source.data[d2], name='NewPlot%d_y'%self.n_newplots)
+        self.maps_dict['NewPlot%d'%self.n_newplots] = ('NewPlot%d_x'%self.n_newplots,
+                                                       'NewPlot%d_y'%self.n_newplots)
+
+        self.initial_plot_2_data_mapper['NewPlot%d_x'%self.n_newplots] = d1
+        self.initial_plot_2_data_mapper['NewPlot%d_y'%self.n_newplots] = d2
+
+        if self.verbose: print('---self.add_plot---Done')
+        self.refresh_plots()
+
+    def remove_plot(self,plot_title,x,y):
+        """
+        Removes a plot
+        :return:
+        """
+        if self.verbose: print('\n---self.remove_plot---')
+
+        print('Getting Rid of')
+        print(self.maps_dict[plot_title])
+        self.maps_dict.pop(plot_title)
+        print(x,y)
+        #self.source.data.pop(x)
+        #self.source.data.pop(y)
+
+        print('After poping')
+        print(self.maps_dict)
+        print(self.source.data.keys())
+        pprint(self.source.data)
+
+
+
+        self.refresh_plots()
+
+
+    def dist_plot(self):
+        """
+
+        :return:
+        """
+        dist_plots = []
+
+        self.dist_dict = {}
+
+        for col in self.true_cols[0:8]:
+
+            x = self.data_dict[col]
+
+            # create the horizontal histogram
+            hhist, hedges = np.histogram(x, bins=20)
+            hzeros = np.zeros(len(hedges) - 1)
+            hmax = max(hhist) * 1.1
+
+            LINE_ARGS = dict(color="#3A5785", line_color=None)
+
+            ph = figure(toolbar_location=None, plot_width=200, plot_height=100,title=col,
+                        y_range=(0, hmax), y_axis_location="left")
+            ph.xgrid.grid_line_color = None
+            ph.yaxis.major_label_orientation = np.pi / 4
+            ph.background_fill_color = "#fafafa"
+
+            ph.quad(bottom=0, left=hedges[:-1], right=hedges[1:], top=hhist, color="white", line_color="#3A5785")
+            hh1 = ph.quad(bottom=0, left=hedges[:-1], right=hedges[1:], top=hzeros, alpha=0.5, **LINE_ARGS)
+
+
+            # Add to dist dict
+            self.dist_dict[col] = {'plot':ph,
+                                   'hh1':hh1,
+                                   'hedges':hedges}
+
+
+            # Add to grid plot
+            dist_plots.append(ph)
+
+        gp = gridplot(dist_plots, plot_width=300, plot_height=200, ncols=4, height=400,toolbar_location=None,)
+
+
+        return gp
+
+
+
+
     def make_all_plots(self):
         """
 
         :return:
         """
-
-
-        self.exclude_from_table = ['__COLOR__']
         self.tab_list = []
         self.plot_list = []
         self.circle_list = []
         self.plot_control_dict = {}
 
+        self.n_plots = len(self.maps_dict.keys())
 
         # Make Each Plot
-        if self.verbose: print("Plots to make: "+str(self.maps_dict.keys()))
         for f in self.maps_dict.keys():
-            if self.verbose: print("Making Plot: %s"%f)
             xs = self.maps_dict[f][0]
             ys = self.maps_dict[f][1]
             self.make_plot(f, xs, ys)
 
-
-        # Grid Plot
-        nested_list = []
-        for i in range(int(np.ceil(self.n_plots / self.max_row_width))):
-            sublist = []
-            for j in range(self.max_row_width):
-                index = (i*self.max_row_width)+j
-                if index < self.n_plots: sublist.append(self.tab_list[index])
-                else: sublist.append(None)
-
-            nested_list.append(sublist)
-
-        if self.verbose: print("Grid of plots: "+str(nested_list))
-        return gridplot(nested_list)
+        #if self.verbose: print("Grid of plots: "+str(self.tab_list))
+        return gridplot(self.tab_list,ncols=self.max_row_width,plot_width=250, plot_height=250)
 
     def make_all_controls(self):
         # Controls
-        controls = [self.color_selection,
-                    self.selection_label, self.save_selection,
-                    self.add_selection_label,self.write_mod_file]
-        for control in controls:
-            control.on_change('value', self.update)
 
+        self.addplot = Button(label="Add New Plot", button_type="success")
+        self.addplot.on_click(self.add_plot)
+
+        self.add_selection_label.on_click(self.add_selection)
         self.tooltip_select.on_change('value',self.tooltip_update)
-        controls.append(self.tooltip_select)
+        self.color_selection.on_change('value',self.change_color)
 
 
-        return WidgetBox(children=controls)
+        controls = [self.color_selection,
+                    self.tooltip_select,
+                    self.selection_label,
+                    self.add_selection_label,
+                    self.addplot,
+                    self.write_mod_file]
+
+        return widgetbox(children=controls)
 
     def pseudo_update(self,n_selected):
         """
@@ -608,13 +738,14 @@ class GPE:
         """
 
         if self.verbose: print("\n------self.tooltip_update-----")
-        contents = [(col.encode("utf-8"), "@" + col.encode("utf-8")) for col in self.tooltip_select.value]
-        if self.verbose: print(contents)
+        self.tooltip_list = [(col.encode("utf-8"), "@" + col.encode("utf-8")) for col in self.tooltip_select.value]
+        self.refresh_plots()
+        #if self.verbose: print(contents)
 
-        for p in self.plot_control_dict:
-            self.plot_control_dict[p]['tooltip'].tooltips = contents
-            self.plot_control_dict[p]['tooltip'].plot = self.plot_control_dict[p]['figure']
-            if self.verbose: print(self.plot_control_dict[p]['tooltip'].tooltips)
+        #for p in self.plot_control_dict:
+        #    self.plot_control_dict[p]['tooltip'].tooltips = contents
+        #    self.plot_control_dict[p]['tooltip'].plot = self.plot_control_dict[p]['figure']
+        #    if self.verbose: print(self.plot_control_dict[p]['tooltip'].tooltips)
 
     def plot_update(self,attrname, old, new):
         """
@@ -679,35 +810,32 @@ class GPE:
             else:
                 print('Selected Set Size: ' + str(len(inds)))
 
+                # Modify Dist Plots
+                if self.verbose: print('\tUpdating DistPlots')
+                for dist in self.dist_dict:
+                    x = np.array(self.data_dict[dist])
+                    xbins = self.dist_dict[dist]['hedges']
+                    hhist1, _ = np.histogram(x[inds], bins=xbins)
+                    self.dist_dict[dist]['hh1'].data_source.data["top"] = hhist1
+
+                # Modify Data Table
                 indbool = self.inds_bool
                 indbool[inds] = False
-                self.source.data["__selected__"] = indbool
+                self.source.patch({"__selected__":list(enumerate(indbool))})
 
-                full_table_dict = self.df
+
+
+
+
+
+
+                full_table_dict = self.data_dict
                 self.table_source.data = {col: np.array(full_table_dict[col])[inds] for col in full_table_dict.keys()}
 
         # Hack to stop string index type error that occurs when you change color
-        except TypeError:
-            print("NOTHING SELECTED")
+        except FloatingPointError:
+            print("NOTHING SELECTED, error caught")
             pass
-
-        # Check if Color has been Changed
-        t2 = time()
-        if self.color != self.color_selection.value:
-
-            self.source.patch({"__COLOR__": self.color_map_dict[self.color_selection.value]})
-
-            self.color = self.color_selection.value
-            print('New Color: '+self.color_selection.value)
-        print("Color Time:"+str(time() - t2))
-
-        print([(col, "@" + col) for col in self.tooltip_select.value])
-
-        #plots = self.make_all_plots()
-        #controls = self.make_all_controls()
-        #dt = self.make_data_table()
-        #curdoc().roots[0] = column(children=[plots, row(controls, dt)])
-
 
         self.update_time = time()-t0
         print(self.update_time)
@@ -738,6 +866,17 @@ class GPE:
         plots = self.make_all_plots()
         controls = self.make_all_controls()
         dt = self.make_data_table()
-        self.layout =  column(children=[plots, row(controls,dt)])
+        dp = self.dist_plot()
+
+        dp = gridplot(dp, plot_width=300, plot_height=200, ncols=2, height=400)
+        dp = Panel(child=dp, title="Distribution Plot", width=400, height=400)
+
+        dt = Panel(child=dt, title="Data Table", width=400, height=400)
+
+        dtdp = Tabs(tabs=[dp,dt],width=400,height=400)
+
+
+        self.layout =  column(children=[plots,row(controls,dtdp)])
         curdoc().add_root(self.layout)
         curdoc().title = 'Graph Projection Explorer'
+

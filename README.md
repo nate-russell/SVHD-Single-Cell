@@ -7,24 +7,27 @@ Single-cell analysis can uncover the mysteries in the state of individual cells 
 
 
 # Visualization Tool
-[![IMAGE ALT TEXT HERE](http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)](http://www.youtube.com/watch?v=YOUTUBE_VIDEO_ID_HERE)
-[![IMAGE ALT TEXT HERE](https://vimeo.com/176946160/0.jpg)](https://vimeo.com/176946160)
-
+[![IMAGE ALT TEXT HERE](../Images/screenshot_bokehtool.png)](https://vimeo.com/176946160)
 
 
 # Project Overview
 + [Main](../Main/) 
+    + Implementation of LargeVis
 + [Visualization](../Visualization/)
+    + Bokeh application developed to assist visual exploration of the data
 + [Experiments](../Experiments/)
+    + Code for reproducing empirical results shown in paper
 + [Paper](../Paper/)
+    + The Paper Submitted to PSB 2017
++ [Install](../Install/)
+    + Scripts and instructions to aid in installing dependencies
 
 
 
 ### License
 TODO
 
-### [Install](../Install/)
-+ bash script to make it easy
+### 
 
 #### Authors
 + Juho Kim, juhokim2@illinois.edu 
