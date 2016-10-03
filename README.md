@@ -9,13 +9,13 @@ Single-cell analysis can uncover the mysteries in the state of individual cells 
 [![Alt text](Images/screenshot_bokehtool.png)](http://psb.stanford.edu/)
 
 ## Project Overview
-+ [Main](../Main/) 
++ [Main](./Main/) 
     + Implementation of LargeVis
-+ [Visualization](../Visualization/)
++ [Visualization](./Visualization/)
     + Bokeh application developed to assist visual exploration of the data
-+ [Experiments](../Experiments/)
++ [Experiments](./Experiments/)
     + Code for reproducing empirical results shown in paper
-+ [Install](../Install/)
++ [Install](./Install/)
     + Scripts and instructions to aid in installing dependencies
 
 ### License
